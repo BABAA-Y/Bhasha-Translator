@@ -3,6 +3,9 @@ import React, { useState } from "react";
 // Persistent Global Particle Background Layer
 import GlobalParticleBackground from "./components/landing/GlobalParticleBackground";
 
+// Precision Theme-Matched Acoustic Cursor
+import BhashaCursor from "./components/common/BhashaCursor";
+
 // Landing Page Components (4 Refined High-Impact Sections)
 import Navbar from "./components/landing/Navbar";
 import Hero from "./components/landing/Hero";
@@ -43,6 +46,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#070B12] text-[#F8FAFC] overflow-x-clip selection:bg-[#FF9933]/30 selection:text-white relative">
+      {/* Precision Theme-Matched Acoustic Cursor */}
+      <BhashaCursor />
+
       {/* Persistent Global Particle Network Background - Fixed across entire page */}
       <GlobalParticleBackground />
 

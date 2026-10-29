@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Custom Acoustic Precision Pointer for fine-pointer desktop devices */
+@media (pointer: fine) {
+  html, body, a, button, [role="button"], input, select, textarea, .cursor-pointer {
+    cursor: none !important;
+  }
+}
+
 @layer base {
   html, body {
     background-color: #070B12;
