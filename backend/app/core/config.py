@@ -23,4 +23,11 @@ class Settings:
     SAMPLE_RATE: int = 16000
     TTS_SAMPLE_RATE: int = 24000
 
+    # Clerk Authentication
+    CLERK_SECRET_KEY: str = os.getenv("CLERK_SECRET_KEY", "")
+
+    # MongoDB Atlas
+    MONGODB_URI: str = os.getenv("MONGODB_URI", "")
+    MONGODB_DB_NAME: str = os.getenv("MONGODB_DB_NAME", "bhasha")
+
 settings = Settings()

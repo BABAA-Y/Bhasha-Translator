@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Menu, X, Mic, Sparkles } from "lucide-react";
+import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 
-export default function Navbar({ onOpenDemo, onOpenAuth }) {
+export default function Navbar({ onOpenDemo, onOpenAuth, isClerkConfigured = false }) {
+  const navigate = useNavigate();
   const [scrollY, setScrollY] = useState(0);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -139,8 +142,8 @@ export default function Navbar({ onOpenDemo, onOpenAuth }) {
           {/* ========================================================================= */}
           {/* 1. LOGO: Minimal, Dignified & Pristine                                     */}
           {/* ========================================================================= */}
-          <a
-            href="#"
+          <Link
+            to="/"
             className="flex items-center gap-2.5 group relative z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/50 rounded-xl"
           >
             <div className="w-8 h-8 rounded-xl bg-[#FF9933] flex items-center justify-center font-bold text-slate-950 text-sm font-indic shadow-md shadow-[#FF9933]/20 group-hover:scale-105 transition-transform duration-200">
@@ -149,20 +152,20 @@ export default function Navbar({ onOpenDemo, onOpenAuth }) {
             <span className="font-extrabold text-base tracking-widest text-white font-display drop-shadow-sm">
               BHASHA
             </span>
-          </a>
+          </Link>
 
           {/* ========================================================================= */}
           {/* 2. CENTER NAVIGATION LINKS: Clean, Editorial, Frosted Hover                */}
           {/* ========================================================================= */}
           <div className="hidden md:flex items-center gap-2 text-sm font-medium text-slate-300 relative z-10">
             <a
-              href="#features"
+              href="/#features"
               className="px-3.5 py-1.5 rounded-full hover:text-white hover:bg-white/[0.06] transition-all duration-200 cursor-pointer"
             >
               Features
             </a>
             <a
-              href="#capabilities"
+              href="/#capabilities"
               className="px-3.5 py-1.5 rounded-full hover:text-white hover:bg-white/[0.06] transition-all duration-200 cursor-pointer"
             >
               Capabilities
@@ -173,20 +176,53 @@ export default function Navbar({ onOpenDemo, onOpenAuth }) {
           {/* 3. RIGHT SIDE: AUTH + LIVE DEMO CTA                                       */}
           {/* ========================================================================= */}
           <div className="hidden md:flex items-center gap-3 relative z-10">
-            <button
-              type="button"
-              onClick={() => onOpenAuth("login")}
-              className="text-xs font-semibold text-slate-300 hover:text-white px-3.5 py-2 rounded-xl hover:bg-white/[0.06] transition-colors cursor-pointer"
-            >
-              Log in
-            </button>
-            <button
-              type="button"
-              onClick={() => onOpenAuth("signup")}
-              className="text-xs font-semibold text-slate-200 bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/[0.14] px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm"
-            >
-              Sign up
-            </button>
+            {isClerkConfigured ? (
+              <>
+                <SignedIn>
+                  <UserButton
+                    afterSignOutUrl="/"
+                    appearance={{
+                      elements: {
+                        avatarBox: "w-8 h-8 rounded-full border border-white/20",
+                      },
+                    }}
+                  />
+                </SignedIn>
+                <SignedOut>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/login")}
+                    className="text-xs font-semibold text-slate-300 hover:text-white px-3.5 py-2 rounded-xl hover:bg-white/[0.06] transition-colors cursor-pointer"
+                  >
+                    Log in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/signup")}
+                    className="text-xs font-semibold text-slate-200 bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/[0.14] px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm"
+                  >
+                    Sign up
+                  </button>
+                </SignedOut>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate("/login")}
+                  className="text-xs font-semibold text-slate-300 hover:text-white px-3.5 py-2 rounded-xl hover:bg-white/[0.06] transition-colors cursor-pointer"
+                >
+                  Log in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/signup")}
+                  className="text-xs font-semibold text-slate-200 bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/[0.14] px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm"
+                >
+                  Sign up
+                </button>
+              </>
+            )}
 
             <button
               type="button"
@@ -244,7 +280,7 @@ export default function Navbar({ onOpenDemo, onOpenAuth }) {
                   type="button"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    onOpenAuth("login");
+                    navigate("/login");
                   }}
                   className="flex-1 py-2.5 text-xs font-semibold text-center border border-white/[0.08] rounded-xl text-slate-300 hover:bg-white/[0.04] transition"
                 >
@@ -254,7 +290,7 @@ export default function Navbar({ onOpenDemo, onOpenAuth }) {
                   type="button"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    onOpenAuth("signup");
+                    navigate("/signup");
                   }}
                   className="flex-1 py-2.5 text-xs font-bold text-center bg-[#FF9933] text-slate-950 rounded-xl active:scale-95 transition shadow-md shadow-[#FF9933]/20"
                 >

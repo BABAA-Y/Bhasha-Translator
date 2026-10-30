@@ -10,11 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@clerk/clerk-react": "^5.61.11",
+    "@clerk/themes": "^2.4.57",
     "@tailwindcss/vite": "^4.3.3",
     "framer-motion": "^14.7.1",
     "lucide-react": "^1.64.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.5",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {

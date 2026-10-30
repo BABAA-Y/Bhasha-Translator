@@ -123,3 +123,168 @@
 .wave-bar-3 { animation: wave-bounce 1.35s ease-in-out infinite 0.35s; }
 .wave-bar-4 { animation: wave-bounce 0.95s ease-in-out infinite 0.1s; }
 .wave-bar-5 { animation: wave-bounce 1.2s ease-in-out infinite 0.25s; }
+
+/* Custom Bhasha Liquid-Glass Overrides for Clerk Components */
+.cl-rootBox, .cl-card, .cl-cardBox, .cl-footer, .cl-footerAction, .cl-footerPages {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* 1. Completely remove all "Optional" labels from Clerk form fields */
+.cl-formFieldHintText,
+.cl-formFieldHintText__firstName,
+.cl-formFieldHintText__lastName,
+.cl-formFieldLabel__optional,
+.cl-formFieldLabel [class*="HintText"],
+.cl-formFieldLabel [class*="hintText"],
+[data-localization-key*="formFieldHintText__optional"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  pointer-events: none !important;
+}
+
+/* 2. Completely remove Clerk security & development mode footer, logo, and striped canvas */
+.cl-internal-1dauvpw,
+.cl-internal-1k7jtru,
+.cl-internal-pe6vm4,
+.cl-internal-y44tp9,
+.cl-internal-148d8dt,
+.cl-internal-19hzyd2,
+.cl-internal-zmcn5g,
+.cl-internal-b3fm6y,
+.cl-footerAction__development,
+.cl-footerPages,
+.cl-developmentBadge,
+[data-localization-key*="developmentRun"],
+[data-localization-key*="securedBy"],
+a[aria-label="Clerk logo"],
+.cl-footer > :not(.cl-footerAction) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: none !important;
+  background-image: none !important;
+  pointer-events: none !important;
+}
+
+/* 3. Clean up Clerk footer container and card spacing - naturally shrink height */
+.cl-footer {
+  border: none !important;
+  border-top: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  margin-top: 0.5rem !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+.cl-footerAction {
+  padding-top: 0.5rem !important;
+  padding-bottom: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  border: none !important;
+  border-top: none !important;
+}
+
+.cl-card, .cl-cardBox, .cl-main {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.cl-header {
+  display: none !important;
+}
+
+.cl-formFieldInput {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #F8FAFC !important;
+  border-radius: 12px !important;
+  font-size: 0.8125rem !important;
+  height: 2.5rem !important;
+  padding: 0.5rem 0.875rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.cl-formFieldInput:focus {
+  border-color: rgba(255, 153, 51, 0.7) !important;
+  box-shadow: 0 0 0 2px rgba(255, 153, 51, 0.2) !important;
+}
+
+.cl-socialButtonsBlockButton {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #E2E8F0 !important;
+  border-radius: 12px !important;
+  height: 2.5rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.cl-socialButtonsBlockButton:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.cl-formButtonPrimary {
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 50%, #ea580c 100%) !important;
+  color: #020617 !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 0 25px -4px rgba(249, 115, 22, 0.35) !important;
+  border: none !important;
+  height: 2.625rem !important;
+}
+
+.cl-formFieldRow {
+  margin-bottom: 0.75rem !important;
+}
+
+@media (max-width: 640px) {
+  .cl-socialButtonsBlockButton {
+    height: 2.375rem !important;
+    font-size: 0.75rem !important;
+  }
+  .cl-formFieldInput {
+    height: 2.375rem !important;
+    font-size: 0.75rem !important;
+  }
+  .cl-formFieldRow {
+    margin-bottom: 0.5rem !important;
+  }
+  .cl-dividerRow {
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+}
+
+.cl-footerActionLink {
+  color: #FF9933 !important;
+  font-weight: 600 !important;
+}
+
+.cl-footerActionLink:hover {
+  color: #FFAE5C !important;
+}
+
+.cl-internal-b3fm6y {
+  display: none !important; /* Hide default clerk badge if desired */
+}
+
