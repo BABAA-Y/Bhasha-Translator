@@ -28,25 +28,18 @@ export default function BhashaCursor() {
       mousePos.current.x = e.clientX;
       mousePos.current.y = e.clientY;
 
-      if (!isVisible) setIsVisible(true);
+      setIsVisible(true);
 
       // Instantly position the center precision dot (0ms latency)
       if (dotRef.current) {
         dotRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
       }
 
-      // Check if hovering over clickable/interactive elements
+      // Check if hovering over clickable/interactive elements without expensive reflow
       const target = e.target;
-      if (target) {
+      if (target && target.closest) {
         const isInteractive = Boolean(
-          target.closest("button") ||
-          target.closest("a") ||
-          target.closest("[role='button']") ||
-          target.closest("input") ||
-          target.closest("select") ||
-          target.closest("textarea") ||
-          target.closest(".cursor-pointer") ||
-          window.getComputedStyle(target).cursor === "pointer"
+          target.closest("button, a, [role='button'], input, select, textarea, .cursor-pointer, summary")
         );
         setIsHovering(isInteractive);
       }
@@ -61,9 +54,8 @@ export default function BhashaCursor() {
     };
     const onMouseEnter = () => setIsVisible(true);
 
-    // Spring Lerp Loop for the trailing acoustic reticle ring
+    // Spring Lerp Loop for trailing reticle ring
     const render = () => {
-      // Lerp ring towards mouse with smooth easing
       const factor = 0.22;
       ringPos.current.x += (mousePos.current.x - ringPos.current.x) * factor;
       ringPos.current.y += (mousePos.current.y - ringPos.current.y) * factor;
@@ -92,7 +84,7 @@ export default function BhashaCursor() {
       document.removeEventListener("mouseenter", onMouseEnter);
       cancelAnimationFrame(animId);
     };
-  }, [isVisible]);
+  }, []);
 
   // If touch device, do not render custom cursor
   if (!isFinePointer) return null;

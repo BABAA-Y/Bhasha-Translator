@@ -44,19 +44,34 @@ def translate(text: str, source_lang: str, target_lang: str) -> str:
 
             prompt = f"Translate the following spoken {src_name} sentence into natural conversational {tgt_name}:\n\n\"{text.strip()}\""
 
-            completion = client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.2,
-                max_tokens=256,
-            )
-            result = completion.choices[0].message.content.strip()
-            if result.startswith('"') and result.endswith('"'):
-                result = result[1:-1].strip()
-            return result
+            models_to_try = [
+                "qwen/qwen3.8-27b",
+                "openai/gpt-oss-120b",
+                "openai/gpt-oss-20b",
+                "llama-3.1-8b-instant"
+            ]
+            last_err = None
+            for model_name in models_to_try:
+                try:
+                    completion = client.chat.completions.create(
+                        model=model_name,
+                        messages=[
+                            {"role": "system", "content": SYSTEM_PROMPT},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.2,
+                        max_tokens=256,
+                    )
+                    result = completion.choices[0].message.content.strip()
+                    if result.startswith('"') and result.endswith('"'):
+                        result = result[1:-1].strip()
+                    return result
+                except Exception as model_err:
+                    last_err = model_err
+                    continue
+
+            if last_err:
+                print(f"[WARNING] Groq translation error across models: {last_err}. Falling back.")
         except Exception as e:
             print(f"[WARNING] Groq translation error: {e}. Falling back.")
 

@@ -2,8 +2,14 @@
 
 /* Custom Acoustic Precision Pointer for fine-pointer desktop devices */
 @media (pointer: fine) {
-  html, body, a, button, [role="button"], input, select, textarea, .cursor-pointer {
+  html, body, a, button, [role="button"], .cursor-pointer {
     cursor: none !important;
+  }
+  input, textarea {
+    cursor: text !important;
+  }
+  select {
+    cursor: pointer !important;
   }
 }
 

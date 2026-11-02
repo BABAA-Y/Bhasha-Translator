@@ -1,10 +1,14 @@
 import base64
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+import json
+import asyncio
+import websockets
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
 from app.core.config import settings
+from app.core.database import get_database
 from app.services.audio_converter import convert_audio_to_wav
-from app.services.gnani_stt import transcribe_speech
+from app.services.gnani_stt import transcribe_speech, PRISMA_STREAM_URL, get_prisma_stream_headers
 from app.services.gnani_tts import synthesize_speech
 from app.services.translator import translate, LANG_NAMES
 
@@ -14,6 +18,150 @@ class TextTranslateRequest(BaseModel):
     text: str
     source_lang: str = "hi"
     target_lang: str = "ta"
+
+@router.websocket("/ws/stt-stream")
+async def websocket_stt_stream(websocket: WebSocket, source_lang: str = "hi"):
+    """
+    Real-time streaming Speech-to-Text WebSocket gateway:
+    Receives live 16kHz PCM audio chunks from browser, bridges them to
+    Gnani Prisma Streaming STT, and emits progressive partial/final transcripts.
+    """
+    await websocket.accept()
+    headers = get_prisma_stream_headers(source_lang)
+    
+    latest_transcript = ""
+    is_client_stopped = False
+
+    try:
+        async with websockets.connect(PRISMA_STREAM_URL, additional_headers=headers) as gnani_ws:
+            # 1. Await initial connection confirmation from Gnani Prisma
+            try:
+                init_msg = await asyncio.wait_for(gnani_ws.recv(), timeout=6.0)
+                await websocket.send_json({
+                    "type": "connected",
+                    "status": "ready",
+                    "language_code": headers.get("language_code"),
+                    "message": "Live STT streaming initialized"
+                })
+            except Exception as conn_err:
+                print(f"[ERROR] Gnani streaming connection failed: {conn_err}")
+                await websocket.send_json({"type": "error", "message": f"Gnani connection error: {conn_err}"})
+                await websocket.close()
+                return
+
+            # Task A: Forward raw PCM audio chunks from browser to Gnani
+            async def forward_audio_to_gnani():
+                nonlocal latest_transcript, is_client_stopped
+                try:
+                    while True:
+                        msg = await websocket.receive()
+                        if "bytes" in msg and msg["bytes"]:
+                            # Stream binary 16kHz PCM audio
+                            await gnani_ws.send(msg["bytes"])
+                        elif "text" in msg and msg["text"]:
+                            try:
+                                data = json.loads(msg["text"])
+                                if data.get("action") == "stop":
+                                    is_client_stopped = True
+                                    # Send brief silence buffer to trigger Gnani VAD finalize
+                                    silence = b"\x00" * 1024
+                                    for _ in range(12):
+                                        await gnani_ws.send(silence)
+                                        await asyncio.sleep(0.015)
+                                    break
+                            except Exception:
+                                pass
+                except (WebSocketDisconnect, asyncio.CancelledError):
+                    pass
+                except Exception as e:
+                    print(f"[WARNING] Client audio stream error: {e}")
+
+            # Task B: Receive partial and final transcripts from Gnani and forward to browser
+            async def forward_events_to_browser():
+                nonlocal latest_transcript, is_client_stopped
+                try:
+                    async for gnani_msg in gnani_ws:
+                        try:
+                            parsed = json.loads(gnani_msg)
+                            msg_type = parsed.get("type")
+
+                            if msg_type in ("partial_transcript", "transcript"):
+                                text = (parsed.get("text") or "").strip()
+                                is_fin = parsed.get("is_final", False)
+                                if text:
+                                    latest_transcript = text
+                                await websocket.send_json({
+                                    "type": "final_transcript" if is_fin else "partial_transcript",
+                                    "text": text or latest_transcript,
+                                    "is_final": is_fin,
+                                    "stable_text": parsed.get("stable_text", ""),
+                                    "volatile_text": parsed.get("volatile_text", ""),
+                                })
+                                if is_fin and is_client_stopped:
+                                    break
+
+                            elif msg_type == "final_transcript":
+                                text = (parsed.get("text") or "").strip() or latest_transcript
+                                latest_transcript = text
+                                await websocket.send_json({
+                                    "type": "final_transcript",
+                                    "text": text,
+                                    "is_final": True
+                                })
+                                if is_client_stopped:
+                                    break
+
+                            elif msg_type == "speech_start":
+                                await websocket.send_json({
+                                    "type": "speech_start",
+                                    "utterance_id": parsed.get("utterance_id")
+                                })
+
+                        except Exception as parse_err:
+                            print(f"[WARNING] Gnani event parse error: {parse_err}")
+
+                except (WebSocketDisconnect, asyncio.CancelledError):
+                    pass
+                except Exception as e:
+                    print(f"[WARNING] Gnani receive error: {e}")
+
+            # Run concurrently
+            sender_task = asyncio.create_task(forward_audio_to_gnani())
+            receiver_task = asyncio.create_task(forward_events_to_browser())
+
+            done, pending = await asyncio.wait(
+                [sender_task, receiver_task],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+
+            # Wait briefly for remaining final event if stopped cleanly
+            if is_client_stopped and not receiver_task.done():
+                try:
+                    await asyncio.wait_for(receiver_task, timeout=1.5)
+                except (asyncio.TimeoutError, Exception):
+                    pass
+
+            for task in pending:
+                task.cancel()
+
+            # Ensure final transcript is guaranteed sent before closing
+            if latest_transcript:
+                try:
+                    await websocket.send_json({
+                        "type": "final_transcript",
+                        "text": latest_transcript,
+                        "is_final": True
+                    })
+                except Exception:
+                    pass
+
+    except (WebSocketDisconnect, Exception) as ws_err:
+        print(f"[INFO] Streaming STT session ended: {ws_err}")
+    finally:
+        try:
+            await websocket.close()
+        except Exception:
+            pass
 
 @router.get("/health")
 def health_check():
@@ -64,8 +212,13 @@ async def translate_voice_endpoint(
 ):
     try:
         raw_audio = await audio.read()
-        if not raw_audio:
-            raise HTTPException(status_code=400, detail="Empty audio received")
+        if not raw_audio or len(raw_audio) < 80:
+            return {
+                "transcript": "",
+                "translated_text": "",
+                "audio_base64": None,
+                "message": "Audio buffer too short or empty"
+            }
 
         # 1. Convert to 16kHz mono WAV
         wav_audio = convert_audio_to_wav(raw_audio)
@@ -118,8 +271,18 @@ async def translate_voice_endpoint(
 @router.post("/translate-text")
 async def translate_text_endpoint(req: TextTranslateRequest):
     try:
+        clean_text = (req.text or "").strip()
+        if not clean_text:
+            return {
+                "original_text": "",
+                "translated_text": "",
+                "audio_base64": None,
+                "source_lang": req.source_lang,
+                "target_lang": req.target_lang
+            }
+
         translated_text = translate(
-            text=req.text,
+            text=clean_text,
             source_lang=req.source_lang,
             target_lang=req.target_lang
         )
