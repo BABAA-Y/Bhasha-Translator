@@ -48,7 +48,7 @@ def translate(text: str, source_lang: str, target_lang: str) -> str:
                 "qwen/qwen3.8-27b",
                 "openai/gpt-oss-120b",
                 "openai/gpt-oss-20b",
-                "llama-3.1-8b-instant"
+                "allam-2-7b",
             ]
             last_err = None
             for model_name in models_to_try:
@@ -61,6 +61,7 @@ def translate(text: str, source_lang: str, target_lang: str) -> str:
                         ],
                         temperature=0.2,
                         max_tokens=256,
+                        timeout=8.0,
                     )
                     result = completion.choices[0].message.content.strip()
                     if result.startswith('"') and result.endswith('"'):

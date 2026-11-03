@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 export function getWebSocketUrl(sourceLang = "hi") {
+  const langQuery = `source_lang=${encodeURIComponent(sourceLang)}`;
   if (import.meta.env.VITE_WS_BASE_URL) {
-    return `${import.meta.env.VITE_WS_BASE_URL}/ws/stt-stream?source_lang=${encodeURIComponent(sourceLang)}`;
+    const base = import.meta.env.VITE_WS_BASE_URL.replace(/\/+$/, "");
+    const path = base.endsWith("/api") ? "/ws/stt-stream" : "/api/ws/stt-stream";
+    return `${base}${path}?${langQuery}`;
   }
   const host =
     typeof window !== "undefined" && window.location.hostname
@@ -12,7 +15,7 @@ export function getWebSocketUrl(sourceLang = "hi") {
     typeof window !== "undefined" && window.location.protocol === "https:"
       ? "wss:"
       : "ws:";
-  return `${protocol}//${host}:8000/api/ws/stt-stream?source_lang=${encodeURIComponent(sourceLang)}`;
+  return `${protocol}//${host}:8000/api/ws/stt-stream?${langQuery}`;
 }
 
 // Convert Float32Array to 16-bit PCM Int16Array Buffer with NaN guards
@@ -103,7 +106,14 @@ export function useLiveStreamingSTT() {
 
     if (wsRef.current) {
       try {
-        if (wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.onopen = null;
+        wsRef.current.onmessage = null;
+        wsRef.current.onerror = null;
+        wsRef.current.onclose = null;
+        if (
+          wsRef.current.readyState === WebSocket.OPEN ||
+          wsRef.current.readyState === WebSocket.CONNECTING
+        ) {
           wsRef.current.close();
         }
       } catch {
@@ -221,7 +231,9 @@ export function useLiveStreamingSTT() {
           const inputChannel = e.inputBuffer.getChannelData(0);
           const downsampled = downsampleBuffer(inputChannel, audioCtx.sampleRate, 16000);
           const pcmBuffer = floatTo16BitPCM(downsampled);
-          wsRef.current.send(pcmBuffer);
+          if (pcmBuffer.byteLength > 0 && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(pcmBuffer);
+          }
         };
 
         source.connect(processor);
@@ -269,6 +281,16 @@ export function useLiveStreamingSTT() {
         } catch {
           // ignore
         }
+      }
+
+      // Disconnect processor immediately so no further audio chunks are queued
+      if (processorRef.current) {
+        try {
+          processorRef.current.disconnect();
+        } catch {
+          // ignore
+        }
+        processorRef.current = null;
       }
 
       // If recording was under 400ms, abort as accidental tap

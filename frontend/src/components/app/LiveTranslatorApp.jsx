@@ -41,6 +41,7 @@ export default function LiveTranslatorApp({ onBackToLanding }) {
 
   const audioPlayerRef = useRef(null);
   const noticeTimeoutRef = useRef(null);
+  const turnStateTimeoutRef = useRef(null);
   const historyContainerRef = useRef(null);
 
   // Helper for non-intrusive notification toast
@@ -64,6 +65,7 @@ export default function LiveTranslatorApp({ onBackToLanding }) {
     fetchQuickCards().then((data) => setQuickCards(data || []));
     return () => {
       if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
+      if (turnStateTimeoutRef.current) clearTimeout(turnStateTimeoutRef.current);
     };
   }, []);
 
@@ -190,7 +192,8 @@ export default function LiveTranslatorApp({ onBackToLanding }) {
       setTurnState("RESULT");
 
       // Reset active card and return to IDLE for next turn
-      setTimeout(() => {
+      if (turnStateTimeoutRef.current) clearTimeout(turnStateTimeoutRef.current);
+      turnStateTimeoutRef.current = setTimeout(() => {
         setTurnState("IDLE");
         setCurrentFinalTranscript("");
       }, 350);
@@ -245,7 +248,8 @@ export default function LiveTranslatorApp({ onBackToLanding }) {
       setActiveTab("split");
       setTurnState("RESULT");
 
-      setTimeout(() => {
+      if (turnStateTimeoutRef.current) clearTimeout(turnStateTimeoutRef.current);
+      turnStateTimeoutRef.current = setTimeout(() => {
         setTurnState("IDLE");
         setCurrentFinalTranscript("");
       }, 350);
@@ -258,6 +262,7 @@ export default function LiveTranslatorApp({ onBackToLanding }) {
   };
 
   const handleClear = () => {
+    if (turnStateTimeoutRef.current) clearTimeout(turnStateTimeoutRef.current);
     resetTranscript();
     setTurns([]);
     setCurrentFinalTranscript("");

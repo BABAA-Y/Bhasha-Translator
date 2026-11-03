@@ -31,12 +31,13 @@ async def websocket_stt_stream(websocket: WebSocket, source_lang: str = "hi"):
     
     latest_transcript = ""
     is_client_stopped = False
+    has_sent_final = False
 
     try:
         async with websockets.connect(PRISMA_STREAM_URL, additional_headers=headers) as gnani_ws:
             # 1. Await initial connection confirmation from Gnani Prisma
             try:
-                init_msg = await asyncio.wait_for(gnani_ws.recv(), timeout=6.0)
+                init_msg = await asyncio.wait_for(gnani_ws.recv(), timeout=8.0)
                 await websocket.send_json({
                     "type": "connected",
                     "status": "ready",
@@ -78,7 +79,7 @@ async def websocket_stt_stream(websocket: WebSocket, source_lang: str = "hi"):
 
             # Task B: Receive partial and final transcripts from Gnani and forward to browser
             async def forward_events_to_browser():
-                nonlocal latest_transcript, is_client_stopped
+                nonlocal latest_transcript, is_client_stopped, has_sent_final
                 try:
                     async for gnani_msg in gnani_ws:
                         try:
@@ -90,6 +91,8 @@ async def websocket_stt_stream(websocket: WebSocket, source_lang: str = "hi"):
                                 is_fin = parsed.get("is_final", False)
                                 if text:
                                     latest_transcript = text
+                                if is_fin:
+                                    has_sent_final = True
                                 await websocket.send_json({
                                     "type": "final_transcript" if is_fin else "partial_transcript",
                                     "text": text or latest_transcript,
@@ -103,6 +106,7 @@ async def websocket_stt_stream(websocket: WebSocket, source_lang: str = "hi"):
                             elif msg_type == "final_transcript":
                                 text = (parsed.get("text") or "").strip() or latest_transcript
                                 latest_transcript = text
+                                has_sent_final = True
                                 await websocket.send_json({
                                     "type": "final_transcript",
                                     "text": text,
@@ -144,8 +148,11 @@ async def websocket_stt_stream(websocket: WebSocket, source_lang: str = "hi"):
             for task in pending:
                 task.cancel()
 
-            # Ensure final transcript is guaranteed sent before closing
-            if latest_transcript:
+            if pending:
+                await asyncio.gather(*pending, return_exceptions=True)
+
+            # Ensure final transcript is guaranteed sent before closing if not already sent
+            if latest_transcript and not has_sent_final:
                 try:
                     await websocket.send_json({
                         "type": "final_transcript",
