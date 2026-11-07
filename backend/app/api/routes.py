@@ -316,3 +316,64 @@ async def translate_text_endpoint(req: TextTranslateRequest):
     except Exception as e:
         print(f"[ERROR] Text translation endpoint failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+class TTSRequest(BaseModel):
+    text: str
+    language_code: str = "auto"
+    voice: str = "Shivani"
+    speed: float = 1.0
+
+def detect_script_language(text: str) -> str:
+    """Detects primary Indian language code from Unicode script range."""
+    for ch in text:
+        cp = ord(ch)
+        if 0x0B80 <= cp <= 0x0BFF:
+            return "ta"
+        if 0x0900 <= cp <= 0x097F:
+            return "hi"
+        if 0x0C00 <= cp <= 0x0C7F:
+            return "te"
+        if 0x0C80 <= cp <= 0x0CFF:
+            return "kn"
+        if 0x0980 <= cp <= 0x09FF:
+            return "bn"
+        if 0x0D00 <= cp <= 0x0D7F:
+            return "ml"
+        if 0x0A80 <= cp <= 0x0AFF:
+            return "gu"
+        if 0x0A00 <= cp <= 0x0A7F:
+            return "pa"
+    return "hi"
+
+@router.post("/tts")
+async def tts_endpoint(req: TTSRequest):
+    """
+    Direct Gnani Timbre TTS synthesis endpoint for natural conversational voice.
+    """
+    clean_text = (req.text or "").strip()
+    if not clean_text:
+        return {"audio_base64": None, "text": "", "language_code": req.language_code}
+
+    lang = req.language_code
+    if not lang or lang == "auto":
+        lang = detect_script_language(clean_text)
+
+    try:
+        tts_audio = synthesize_speech(
+            text=clean_text,
+            language_code=lang,
+            voice=req.voice or "Shivani",
+            speed=req.speed or 1.0,
+        )
+        audio_base64 = None
+        if tts_audio:
+            audio_base64 = f"data:audio/wav;base64,{base64.b64encode(tts_audio).decode('utf-8')}"
+        return {
+            "text": clean_text,
+            "language_code": lang,
+            "voice": req.voice,
+            "audio_base64": audio_base64,
+        }
+    except Exception as e:
+        print(f"[ERROR] Direct TTS endpoint failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

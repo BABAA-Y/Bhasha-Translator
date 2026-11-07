@@ -71,3 +71,23 @@ export async function translateText(text, sourceLang, targetLang) {
 
   return await res.json();
 }
+
+export async function synthesizeSpeech(text, languageCode = "auto", voice = "Shivani") {
+  const res = await fetch(`${API_BASE}/tts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      text,
+      language_code: languageCode,
+      voice,
+    }),
+    signal: AbortSignal.timeout(15000),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`TTS synthesis failed (${res.status}): ${errText}`);
+  }
+
+  return await res.json();
+}
